@@ -38,7 +38,7 @@ python format_result.py
 ```
 
 ### Augment data with synonym word:
-```
+```bash
 cd augment_data
 ./run.sh
 
@@ -53,7 +53,7 @@ python augment.py \
 ```
 
 ## Run tranditional model (TF-IDF + SVM)
-```
+```bash
 python traditional_model.py \
     --data_folder=path_to_forlder_consisting_csv_file \
     --save_folder=path_to_save_folder
@@ -62,18 +62,18 @@ python traditional_model.py \
 ## Run Deep learning model CNN, LSTM, PhoBERT
 
 #### Train
-```
+```bash
 cd PhoBERT or CNN_LSTM
 ./train.sh
 ```
 
 #### Predict
-```
+```bash
 ./predict.sh
 ```
 
 ## Get Result of inference, Confusion matrix, and Report result.
-```
+```bash
 python analysis_result.py --path_result=path_to_result_file
 ```
 
