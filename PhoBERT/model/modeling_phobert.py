@@ -12,6 +12,8 @@ class PhoBERT(RobertaPreTrainedModel):
         self.roberta = RobertaModel(config)  # Load pretrained phobert
 
         self.intent_classifier = IntentClassifier(config.hidden_size, self.num_intent_labels, args.dropout_rate)
+        self.list_cnn = nn.ModuleList([nn.Conv1d(config.hidden_size, 256, i, device='cuda', padding='same') for i in range(3,6)])
+        self.lstm = nn.LSTM(config.hidden_size, config.hidden_size, batch_first=True)
 
         self.config = config
 
@@ -20,8 +22,22 @@ class PhoBERT(RobertaPreTrainedModel):
             input_ids, attention_mask=attention_mask, token_type_ids=token_type_ids
         )  # sequence_output, pooled_output, (hidden_states), (attentions)
         
-        pooled_output = outputs[1]  # [CLS]
-        intent_state = pooled_output
+        hidden_state = torch.transpose(outputs.last_hidden_state[:,1:-1,:], 1, 2)
+        cnn_outputs = []
+        for layer in self.list_cnn:
+            output = layer(hidden_state)
+            output, _ = torch.max(output, dim=-1)
+            cnn_outputs.append(output)
+
+        intent_state = torch.cat(cnn_outputs, dim=1)
+        # hidden_state = outputs.last_hidden_state[:,1:-1,:]
+        # _, (h_n, c_n) = self.lstm(hidden_state)
+        
+        # state = h_n
+        # intent_state = torch.squeeze(state)
+        
+        # pooled_output = outputs[1]  # [CLS]
+        # intent_state = pooled_output
 
         intent_logits = self.intent_classifier(intent_state)
 

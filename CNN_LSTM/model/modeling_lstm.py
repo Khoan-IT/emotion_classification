@@ -18,7 +18,7 @@ class ModelLSTM(nn.Module):
         self.intent_classifier = IntentClassifier(args.hidden_size, self.num_intent_labels, args.dropout_rate)
          
     def _initialize_embedding(self, tokenizer):
-        word_vectors = KeyedVectors.load("./cbow_model/vi-model-CBOW.bin")
+        word_vectors = KeyedVectors.load("./model/cbow_model/vi-model-CBOW.bin")
         
         word_index = tokenizer.word_index
         vocabulary_size = min(len(word_index) + 1, self.args.max_vocab_size)

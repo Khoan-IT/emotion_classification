@@ -26,7 +26,7 @@ def get_intent_labels(args):
 
 
 def load_tokenizer(args):
-    data_train = pd.read_csv("./dataset/augment_gpt/train_nor_811.csv")
+    data_train = pd.read_csv("../dataset/augment_gpt/train_nor_811.csv")
     data_train.drop(columns=['Id'], inplace=True)
     sentences = data_train.iloc[:, 1].values
     sentences_train = []

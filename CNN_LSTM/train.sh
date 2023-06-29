@@ -6,7 +6,7 @@ export MODEL_DIR="./checkpoint/"$model
 python3 main.py --token_level word-level \
                   --model_type $model \
                   --model_dir $MODEL_DIR \
-                  --data_dir /home/duckhoan/Documents/Code/zalo_entry_test/JointIDSF/data/nor_augment_not_accent \
+                  --data_dir ../PhoBERT/data/nor_augment_not_accent \
                   --seed $s \
                   --do_train \
                   --do_eval \

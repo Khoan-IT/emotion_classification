@@ -1,7 +1,7 @@
 export lr=3e-5
 export s=2
 echo "${lr}"
-export MODEL_DIR="./"gpt_augment"/"$lr"/"$s
+export MODEL_DIR="./gpt_augment/cnn/"$s
 echo "${MODEL_DIR}"
 python3 main.py --token_level word-level \
                   --model_type phobert \

@@ -6,7 +6,7 @@ import os
 import torch
 from torch.utils.data import TensorDataset
 from keras.utils import pad_sequences
-from utils import get_intent_labels, get_slot_labels
+from utils import get_intent_labels
 
 
 logger = logging.getLogger(__name__)
