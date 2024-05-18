@@ -1,18 +1,39 @@
 import argparse
+import os
 
 from data_loader import load_and_cache_examples
 from trainer import Trainer
 from utils import MODEL_CLASSES, MODEL_PATH_MAP, init_logger, load_tokenizer, set_seed
-
+from data_utils import SentenceLoader
 
 def main(args):
     init_logger()
     set_seed(args)
     tokenizer = load_tokenizer(args)
 
-    train_dataset = load_and_cache_examples(args, tokenizer, mode="train")
-    dev_dataset = load_and_cache_examples(args, tokenizer, mode="dev")
-    test_dataset = load_and_cache_examples(args, tokenizer, mode="test")
+    # train_dataset = load_and_cache_examples(args, tokenizer, mode="train")
+    # dev_dataset = load_and_cache_examples(args, tokenizer, mode="dev")
+    # test_dataset = load_and_cache_examples(args, tokenizer, mode="test")
+    train_dataset = SentenceLoader(
+                        os.path.join(args.data_dir, 'train'),
+                        os.path.join(args.data_dir, args.intent_label_file),
+                        args,
+                        tokenizer,
+                    )
+
+    dev_dataset = SentenceLoader(
+                        os.path.join(args.data_dir, 'dev'),
+                        os.path.join(args.data_dir, args.intent_label_file),
+                        args,
+                        tokenizer,
+                    )
+
+    test_dataset = SentenceLoader(
+                        os.path.join(args.data_dir, 'test'),
+                        os.path.join(args.data_dir, args.intent_label_file),
+                        args,
+                        tokenizer,
+                    )
 
     trainer = Trainer(args, train_dataset, dev_dataset, test_dataset)
 
@@ -42,8 +63,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--tuning_metric", default="loss", type=str, help="Metrics to tune when training")
     parser.add_argument("--seed", type=int, default=1, help="random seed for initialization")
-    parser.add_argument("--train_batch_size", default=128, type=int, help="Batch size for training.")
-    parser.add_argument("--eval_batch_size", default=128, type=int, help="Batch size for evaluation.")
+    parser.add_argument("--train_batch_size", default=2, type=int, help="Batch size for training.")
+    parser.add_argument("--eval_batch_size", default=2, type=int, help="Batch size for evaluation.")
     parser.add_argument(
         "--max_seq_len", default=50, type=int, help="The maximum total input sequence length after tokenization."
     )
@@ -94,7 +115,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--early_stopping",
         type=int,
-        default=50,
+        default=500,
         help="Number of unincreased validation step to wait for early stopping",
     )
     parser.add_argument("--gpu_id", type=int, default=0, help="Select gpu id")

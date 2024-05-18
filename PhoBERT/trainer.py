@@ -103,15 +103,14 @@ class Trainer(object):
 
             for step, batch in enumerate(epoch_iterator):
                 self.model.train()
-                batch = tuple(t.to(self.device) for t in batch)  # GPU or CPU
-
+                # batch = tuple(t.to(self.device) for t in batch)  # GPU or CPU
                 inputs = {
-                    "input_ids": batch[0],
-                    "attention_mask": batch[1],
-                    "intent_label_ids": batch[3],
+                    "input_ids": batch['input_ids'].to(self.device),
+                    "attention_mask": batch['attention_mask'].to(self.device),
+                    "intent_label_ids": batch['intent_label_ids'].to(self.device),
                 }
                 if self.args.model_type != "distilbert":
-                    inputs["token_type_ids"] = batch[2]
+                    inputs["token_type_ids"] = batch["token_type_ids"].to(self.device)
                     
                 outputs = self.model(**inputs)
                 loss = outputs[0]
@@ -177,15 +176,16 @@ class Trainer(object):
         self.model.eval()
 
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
-            batch = tuple(t.to(self.device) for t in batch)
+
+            # batch = tuple(t.to(self.device) for t in batch)
             with torch.no_grad():
                 inputs = {
-                    "input_ids": batch[0],
-                    "attention_mask": batch[1],
-                    "intent_label_ids": batch[3],
+                    "input_ids": batch['input_ids'].to(self.device),
+                    "attention_mask": batch['attention_mask'].to(self.device),
+                    "intent_label_ids": batch['intent_label_ids'].to(self.device),
                 }
                 if self.args.model_type != "distilbert":
-                    inputs["token_type_ids"] = batch[2]
+                    inputs["token_type_ids"] = batch['token_type_ids'].to(self.device)
                 outputs = self.model(**inputs)
                 tmp_eval_loss, (intent_logits) = outputs[:2]
 

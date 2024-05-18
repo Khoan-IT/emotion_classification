@@ -24,7 +24,7 @@ MODEL_PATH_MAP = {
 def get_intent_labels(args):
     return [
         label.strip()
-        for label in open(os.path.join(args.data_dir, args.token_level, args.intent_label_file), "r", encoding="utf-8")
+        for label in open(os.path.join(args.data_dir, args.intent_label_file), "r", encoding="utf-8")
     ]
 
 
