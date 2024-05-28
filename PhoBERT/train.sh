@@ -10,11 +10,15 @@ python3 main.py \
         --seed $s \
         --do_train \
         --do_eval \
-        --train_batch_size 128 \
-        --eval_batch_size 128 \
-        --save_steps  25\
-        --logging_steps 25 \
+        --train_batch_size 1 \
+        --eval_batch_size 1 \
+        --save_steps  1000\
+        --logging_steps 1000 \
         --num_train_epochs 1000 \
         --gpu_id 0 \
         --learning_rate $lr \
         --tuning_metric intent_acc \
+        --additional_loss ge2eloss \
+        --num_sample 20 \
+        --head_layer_dim 384 \
+        

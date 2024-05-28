@@ -3,32 +3,29 @@ import os
 
 from data_loader import load_and_cache_examples
 from trainer import Trainer
-from utils import MODEL_CLASSES, MODEL_PATH_MAP, init_logger, load_tokenizer, set_seed
-from data_utils import SentenceLoader
+from utils import MODEL_CLASSES, MODEL_PATH_MAP, DATALOADER_MAP, init_logger, load_tokenizer, set_seed
+# from data_utils import GE2ESentenceLoader as SentenceLoader
 
 def main(args):
     init_logger()
     set_seed(args)
     tokenizer = load_tokenizer(args)
 
-    # train_dataset = load_and_cache_examples(args, tokenizer, mode="train")
-    # dev_dataset = load_and_cache_examples(args, tokenizer, mode="dev")
-    # test_dataset = load_and_cache_examples(args, tokenizer, mode="test")
-    train_dataset = SentenceLoader(
+    train_dataset = args.dataloader(
                         os.path.join(args.data_dir, 'train'),
                         os.path.join(args.data_dir, args.intent_label_file),
                         args,
                         tokenizer,
                     )
 
-    dev_dataset = SentenceLoader(
+    dev_dataset = args.dataloader(
                         os.path.join(args.data_dir, 'dev'),
                         os.path.join(args.data_dir, args.intent_label_file),
                         args,
                         tokenizer,
                     )
 
-    test_dataset = SentenceLoader(
+    test_dataset = args.dataloader(
                         os.path.join(args.data_dir, 'test'),
                         os.path.join(args.data_dir, args.intent_label_file),
                         args,
@@ -123,8 +120,16 @@ if __name__ == "__main__":
     parser.add_argument("--pretrained_path", default="./viatis_xlmr_crf", type=str, help="The pretrained model path")
 
     parser.add_argument("--use_attention_mask", action="store_true", help="Whether to use attention mask")
-
+    parser.add_argument("--additional_loss", default="crossentropy_or_contrastiveloss", type=str, help="The type of additional loss function (crossentropy_or_contrastiveloss or ge2eloss)")
+    parser.add_argument("--num_sample", type=int, default=50, help="Number of sample for each class when using GE2E loss function")
+    parser.add_argument("--head_layer_dim", type=int, default=384, help="The dimension of head layer that is above the encoder layer")
     args = parser.parse_args()
 
     args.model_name_or_path = MODEL_PATH_MAP[args.model_type]
+    args.dataloader = DATALOADER_MAP[args.additional_loss]
+    
+    if args.additional_loss == 'crossentropy_or_contrastiveloss':
+        assert args.train_batch_size % 2 == 0 and args.eval_batch_size % 2 == 0, "Train and evaluation batch size shoud be a even number"
+    else:
+        assert args.train_batch_size == 1 and args.eval_batch_size == 1, "Train and evaluation batch size shoud be 1 for GE2E Loss Function"
     main(args)

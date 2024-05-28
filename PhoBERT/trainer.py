@@ -26,8 +26,12 @@ class Trainer(object):
         self.pad_token_label_id = args.ignore_index
         self.config_class, self.model_class, _ = MODEL_CLASSES[args.model_type]
 
+        # GPU or CPU
+        torch.cuda.set_device(self.args.gpu_id)
+        self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+        self.args.device = self.device
+        
         if args.pretrained:
-            print(args.model_name_or_path)
             self.config = self.config_class.from_pretrained(args.model_name_or_path, output_hidden_states=True)
             self.model = self.model_class.from_pretrained(
                 args.pretrained_path,
@@ -42,11 +46,7 @@ class Trainer(object):
                 args=args,
                 intent_label_lst=self.intent_label_lst,
             )
-        # GPU or CPU
-        torch.cuda.set_device(self.args.gpu_id)
-        print(self.args.gpu_id)
-        print(torch.cuda.current_device())
-        self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+            
         self.model.to(self.device)
 
     def train(self):
@@ -208,8 +208,7 @@ class Trainer(object):
 
         intent_preds = np.argmax(intent_preds, axis=1)
 
-
-        total_result = compute_metrics(intent_preds, out_intent_label_ids)
+        total_result = compute_metrics(intent_preds, out_intent_label_ids.reshape(-1))
         results.update(total_result)
         
         return results

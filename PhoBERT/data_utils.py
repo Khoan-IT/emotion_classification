@@ -128,18 +128,22 @@ class GE2ESentenceLoader(torch.utils.data.Dataset):
     def __init__(self, data_dir, label_file, args, tokenizer):
         self.data, self.labels = get_data(data_dir, label_file, args, tokenizer)
         self.dict_labels = split_label(self.labels)
+        self.num_sample = args.num_sample
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        result = defaultdict(tensor)
+        result = {}
         for _, v in self.dict_labels.items():
-            idxes = np.random.choice(v, 3, replace=False)
+            idxes = np.random.choice(v, self.num_sample, replace=False)
             for idx in idxes:
                 for k, vm in self.data[idx].items():
-                    result[k] = torch.cat((result[k], vm), dim=0)
-
+                    if k not in result:
+                        result[k] = vm.unsqueeze(0)
+                    else:
+                        result[k] = torch.concat((result[k], vm.unsqueeze(0)), dim=0)
+        
         return result
 
 
@@ -156,8 +160,8 @@ if __name__=="__main__":
 
     train_data = GE2ESentenceLoader(data_dir, label_file, args, tokenizer)
 
-    data_loader = DataLoader(train_data, batch_size=1)
+    data_loader = DataLoader(train_data, batch_size=2)
 
     for batch in data_loader:
-        print(batch['input_ids'].shape)
+        print(batch['intent_label_ids'].shape)
         exit()

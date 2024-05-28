@@ -11,6 +11,8 @@ from transformers import (
     RobertaConfig,
 )
 
+from data_utils import SentenceLoader, GE2ESentenceLoader
+
 
 MODEL_CLASSES = {
     "phobert": (RobertaConfig, PhoBERT, AutoTokenizer),
@@ -18,6 +20,11 @@ MODEL_CLASSES = {
 
 MODEL_PATH_MAP = {
     "phobert": "vinai/phobert-base",
+}
+
+DATALOADER_MAP = {
+    "crossentropy_or_contrastiveloss": SentenceLoader,
+    "ge2eloss": GE2ESentenceLoader
 }
 
 
