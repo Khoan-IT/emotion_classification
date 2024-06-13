@@ -26,8 +26,12 @@ class Trainer(object):
         self.pad_token_label_id = args.ignore_index
         self.config_class, self.model_class, _ = MODEL_CLASSES[args.model_type]
 
+        # GPU or CPU
+        torch.cuda.set_device(self.args.gpu_id)
+        self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+        self.args.device = self.device
+        
         if args.pretrained:
-            print(args.model_name_or_path)
             self.config = self.config_class.from_pretrained(args.model_name_or_path, output_hidden_states=True)
             self.model = self.model_class.from_pretrained(
                 args.pretrained_path,
@@ -42,11 +46,7 @@ class Trainer(object):
                 args=args,
                 intent_label_lst=self.intent_label_lst,
             )
-        # GPU or CPU
-        torch.cuda.set_device(self.args.gpu_id)
-        print(self.args.gpu_id)
-        print(torch.cuda.current_device())
-        self.device = "cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu"
+            
         self.model.to(self.device)
 
     def train(self):
@@ -103,15 +103,14 @@ class Trainer(object):
 
             for step, batch in enumerate(epoch_iterator):
                 self.model.train()
-                batch = tuple(t.to(self.device) for t in batch)  # GPU or CPU
-
+                # batch = tuple(t.to(self.device) for t in batch)  # GPU or CPU
                 inputs = {
-                    "input_ids": batch[0],
-                    "attention_mask": batch[1],
-                    "intent_label_ids": batch[3],
+                    "input_ids": batch['input_ids'].to(self.device),
+                    "attention_mask": batch['attention_mask'].to(self.device),
+                    "intent_label_ids": batch['intent_label_ids'].to(self.device),
                 }
                 if self.args.model_type != "distilbert":
-                    inputs["token_type_ids"] = batch[2]
+                    inputs["token_type_ids"] = batch["token_type_ids"].to(self.device)
                     
                 outputs = self.model(**inputs)
                 loss = outputs[0]
@@ -177,29 +176,33 @@ class Trainer(object):
         self.model.eval()
 
         for batch in tqdm(eval_dataloader, desc="Evaluating"):
-            batch = tuple(t.to(self.device) for t in batch)
+
+            # batch = tuple(t.to(self.device) for t in batch)
             with torch.no_grad():
                 inputs = {
-                    "input_ids": batch[0],
-                    "attention_mask": batch[1],
-                    "intent_label_ids": batch[3],
+                    "input_ids": batch['input_ids'].to(self.device),
+                    "attention_mask": batch['attention_mask'].to(self.device),
+                    "intent_label_ids": None,
                 }
+                
                 if self.args.model_type != "distilbert":
-                    inputs["token_type_ids"] = batch[2]
+                    inputs["token_type_ids"] = batch['token_type_ids'].to(self.device)
                 outputs = self.model(**inputs)
                 tmp_eval_loss, (intent_logits) = outputs[:2]
-
-                eval_loss += tmp_eval_loss.mean().item()
+                if isinstance(tmp_eval_loss, int):
+                    eval_loss = 0
+                else:
+                    eval_loss += tmp_eval_loss.mean().item()
             nb_eval_steps += 1
 
             # Intent prediction
             if intent_preds is None:
                 intent_preds = intent_logits.detach().cpu().numpy()
-                out_intent_label_ids = inputs["intent_label_ids"].detach().cpu().numpy()
+                out_intent_label_ids = batch['intent_label_ids'].detach().cpu().numpy()
             else:
                 intent_preds = np.append(intent_preds, intent_logits.detach().cpu().numpy(), axis=0)
                 out_intent_label_ids = np.append(
-                    out_intent_label_ids, inputs["intent_label_ids"].detach().cpu().numpy(), axis=0
+                    out_intent_label_ids, batch['intent_label_ids'].detach().cpu().numpy(), axis=0
                 )
 
 
@@ -208,8 +211,7 @@ class Trainer(object):
 
         intent_preds = np.argmax(intent_preds, axis=1)
 
-
-        total_result = compute_metrics(intent_preds, out_intent_label_ids)
+        total_result = compute_metrics(intent_preds, out_intent_label_ids.reshape(-1))
         results.update(total_result)
         
         return results

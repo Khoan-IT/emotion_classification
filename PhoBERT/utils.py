@@ -11,6 +11,8 @@ from transformers import (
     RobertaConfig,
 )
 
+from data_utils import SentenceLoader, GE2ESentenceLoader
+
 
 MODEL_CLASSES = {
     "phobert": (RobertaConfig, PhoBERT, AutoTokenizer),
@@ -20,11 +22,17 @@ MODEL_PATH_MAP = {
     "phobert": "vinai/phobert-base",
 }
 
+DATALOADER_MAP = {
+    "None": (SentenceLoader, SentenceLoader),
+    "contrastiveloss": (SentenceLoader, SentenceLoader),
+    "ge2eloss": (GE2ESentenceLoader, SentenceLoader),
+}
+
 
 def get_intent_labels(args):
     return [
         label.strip()
-        for label in open(os.path.join(args.data_dir, args.token_level, args.intent_label_file), "r", encoding="utf-8")
+        for label in open(os.path.join(args.data_dir, args.intent_label_file), "r", encoding="utf-8")
     ]
 
 
