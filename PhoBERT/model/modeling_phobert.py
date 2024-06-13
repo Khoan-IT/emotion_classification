@@ -18,11 +18,12 @@ class PhoBERT(RobertaPreTrainedModel):
         self.intent_classifier = IntentClassifier(args.head_layer_dim, self.num_intent_labels, args.dropout_rate)
 
         self.config = config
-        self.focal_loss = FocalLoss(torch.FloatTensor([0.0, 0.01, 0.01, 0.98]).to(self.args.device))
+        # self.focal_loss = FocalLoss(torch.FloatTensor([0.0, 0.01, 0.03, 0.96]).to(self.args.device))
+        self.focal_loss = nn.CrossEntropyLoss()
         
-        self.intent_loss_weight = 0.5
+        self.intent_loss_weight = 0.1
 
-        if args.additional_loss == 'crossentropy_or_contrastiveloss':
+        if args.additional_loss == 'contrastiveloss':
             self.additional_loss = ContrastiveLoss(1.5)
         else:
             self.additional_loss = GE2ELoss()
@@ -52,18 +53,21 @@ class PhoBERT(RobertaPreTrainedModel):
             
             additional_loss = 0
             # Get addtional loss
-            if self.args.additional_loss == 'ge2eloss':
-                _, embedding_size = head_out.shape
-                head_out = head_out.reshape(self.num_intent_labels - 1, self.args.num_sample, embedding_size)
+            if self.args.additional_loss != 'None':
+                if self.args.additional_loss == 'ge2eloss':
+                    _, embedding_size = head_out.shape
+                    head_out = head_out.reshape(self.num_intent_labels - 1, self.args.num_sample, embedding_size)
 
-                additional_loss = self.additional_loss(head_out)
-            else:
-                head_out = F.normalize(head_out, p=2, dim=1)
-                num_sentences = int(head_out.shape[0] // 2)
-                state_1, state_2 = torch.split(head_out, num_sentences, dim=0)
-                target_1, target_2 = torch.split(intent_label_ids, num_sentences, dim=0)
-                new_target = torch.eq(target_1, target_2).long()
-                additional_loss = self.additional_loss(state_1, state_2, new_target)
+                    additional_loss = self.additional_loss(head_out)
+                else:
+                    head_out = F.normalize(head_out, p=2, dim=1)
+                    num_sentences = int(head_out.shape[0] // 2)
+                    state_1, state_2 = torch.split(head_out, num_sentences, dim=0)
+                    target_1, target_2 = torch.split(intent_label_ids, num_sentences, dim=0)
+                    new_target = torch.eq(target_1, target_2).long()
+                    additional_loss = self.additional_loss(state_1, state_2, new_target)
+                    
+            # print(f"Intent Loss: {intent_loss}\n Additional loss: {additional_loss}")
                 
             total_loss = self.intent_loss_weight * intent_loss + (1 - self.intent_loss_weight) * additional_loss
 
@@ -71,5 +75,5 @@ class PhoBERT(RobertaPreTrainedModel):
 
         outputs = (total_loss,) + outputs
 
-        return outputs
+        return outputs, head_out
 

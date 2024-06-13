@@ -182,24 +182,27 @@ class Trainer(object):
                 inputs = {
                     "input_ids": batch['input_ids'].to(self.device),
                     "attention_mask": batch['attention_mask'].to(self.device),
-                    "intent_label_ids": batch['intent_label_ids'].to(self.device),
+                    "intent_label_ids": None,
                 }
+                
                 if self.args.model_type != "distilbert":
                     inputs["token_type_ids"] = batch['token_type_ids'].to(self.device)
                 outputs = self.model(**inputs)
                 tmp_eval_loss, (intent_logits) = outputs[:2]
-
-                eval_loss += tmp_eval_loss.mean().item()
+                if isinstance(tmp_eval_loss, int):
+                    eval_loss = 0
+                else:
+                    eval_loss += tmp_eval_loss.mean().item()
             nb_eval_steps += 1
 
             # Intent prediction
             if intent_preds is None:
                 intent_preds = intent_logits.detach().cpu().numpy()
-                out_intent_label_ids = inputs["intent_label_ids"].detach().cpu().numpy()
+                out_intent_label_ids = batch['intent_label_ids'].detach().cpu().numpy()
             else:
                 intent_preds = np.append(intent_preds, intent_logits.detach().cpu().numpy(), axis=0)
                 out_intent_label_ids = np.append(
-                    out_intent_label_ids, inputs["intent_label_ids"].detach().cpu().numpy(), axis=0
+                    out_intent_label_ids, batch['intent_label_ids'].detach().cpu().numpy(), axis=0
                 )
 
 

@@ -11,21 +11,21 @@ def main(args):
     set_seed(args)
     tokenizer = load_tokenizer(args)
 
-    train_dataset = args.dataloader(
+    train_dataset = args.dataloader_train(
                         os.path.join(args.data_dir, 'train'),
                         os.path.join(args.data_dir, args.intent_label_file),
                         args,
                         tokenizer,
                     )
 
-    dev_dataset = args.dataloader(
+    dev_dataset = args.dataloader_dev(
                         os.path.join(args.data_dir, 'dev'),
                         os.path.join(args.data_dir, args.intent_label_file),
                         args,
                         tokenizer,
                     )
 
-    test_dataset = args.dataloader(
+    test_dataset = args.dataloader_dev(
                         os.path.join(args.data_dir, 'test'),
                         os.path.join(args.data_dir, args.intent_label_file),
                         args,
@@ -60,8 +60,8 @@ if __name__ == "__main__":
     )
     parser.add_argument("--tuning_metric", default="loss", type=str, help="Metrics to tune when training")
     parser.add_argument("--seed", type=int, default=1, help="random seed for initialization")
-    parser.add_argument("--train_batch_size", default=2, type=int, help="Batch size for training.")
-    parser.add_argument("--eval_batch_size", default=2, type=int, help="Batch size for evaluation.")
+    parser.add_argument("--train_batch_size", default=64, type=int, help="Batch size for training.")
+    parser.add_argument("--eval_batch_size", default=64, type=int, help="Batch size for evaluation.")
     parser.add_argument(
         "--max_seq_len", default=50, type=int, help="The maximum total input sequence length after tokenization."
     )
@@ -120,16 +120,16 @@ if __name__ == "__main__":
     parser.add_argument("--pretrained_path", default="./viatis_xlmr_crf", type=str, help="The pretrained model path")
 
     parser.add_argument("--use_attention_mask", action="store_true", help="Whether to use attention mask")
-    parser.add_argument("--additional_loss", default="crossentropy_or_contrastiveloss", type=str, help="The type of additional loss function (crossentropy_or_contrastiveloss or ge2eloss)")
+    parser.add_argument("--additional_loss", default="None", type=str, help="The type of additional loss function (contrastiveloss or ge2eloss)")
     parser.add_argument("--num_sample", type=int, default=50, help="Number of sample for each class when using GE2E loss function")
     parser.add_argument("--head_layer_dim", type=int, default=384, help="The dimension of head layer that is above the encoder layer")
     args = parser.parse_args()
 
     args.model_name_or_path = MODEL_PATH_MAP[args.model_type]
-    args.dataloader = DATALOADER_MAP[args.additional_loss]
+    args.dataloader_train, args.dataloader_dev = DATALOADER_MAP[args.additional_loss]
     
-    if args.additional_loss == 'crossentropy_or_contrastiveloss':
+    if args.additional_loss in ['contrastiveloss', 'None']:
         assert args.train_batch_size % 2 == 0 and args.eval_batch_size % 2 == 0, "Train and evaluation batch size shoud be a even number"
     else:
-        assert args.train_batch_size == 1 and args.eval_batch_size == 1, "Train and evaluation batch size shoud be 1 for GE2E Loss Function"
+        assert args.train_batch_size == 1, "Train and evaluation batch size shoud be 1 for GE2E Loss Function"
     main(args)

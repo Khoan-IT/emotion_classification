@@ -7,6 +7,7 @@ import torch
 from torch.utils.data import DataLoader, SequentialSampler, TensorDataset
 from tqdm import tqdm
 from utils import MODEL_CLASSES, get_intent_labels, init_logger, load_tokenizer
+from visualize import plot
 
 
 logger = logging.getLogger(__name__)
@@ -127,6 +128,7 @@ def convert_input_file_to_tensor_dataset(
 def predict(pred_config):
     # load model and args
     args = get_args(pred_config)
+    args.model_dir = pred_config.model_dir
     device = get_device(pred_config)
     model = load_model(pred_config, args, device)
     logger.info(args)
@@ -144,9 +146,8 @@ def predict(pred_config):
     sampler = SequentialSampler(dataset)
     data_loader = DataLoader(dataset, sampler=sampler, batch_size=pred_config.batch_size)
 
-    all_slot_label_mask = None
     intent_preds = None
-    slot_preds = None
+    head_outs = None
 
     for batch in tqdm(data_loader, desc="Predicting"):
         batch = tuple(t.to(device) for t in batch)
@@ -158,9 +159,13 @@ def predict(pred_config):
             }
             if args.model_type != "distilbert":
                 inputs["token_type_ids"] = batch[2]
-            outputs = model(**inputs)
+            outputs, head_out = model(**inputs)
             _, (intent_logits) = outputs[:2]
-
+            
+            if head_outs is None:
+                head_outs = head_out.detach().cpu().numpy()
+            else:
+                head_outs = np.append(head_outs, head_out.detach().cpu().numpy(), axis=0)
             # Intent Prediction
             if intent_preds is None:
                 intent_preds = intent_logits.detach().cpu().numpy()
@@ -169,6 +174,7 @@ def predict(pred_config):
 
 
     intent_preds = np.argmax(intent_preds, axis=1)
+    plot(head_outs, np.asarray(lines[1]))
 
     # Write to output file
     with open(pred_config.output_file, "w", encoding="utf-8") as f:

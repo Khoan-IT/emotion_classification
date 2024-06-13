@@ -23,8 +23,9 @@ MODEL_PATH_MAP = {
 }
 
 DATALOADER_MAP = {
-    "crossentropy_or_contrastiveloss": SentenceLoader,
-    "ge2eloss": GE2ESentenceLoader
+    "None": (SentenceLoader, SentenceLoader),
+    "contrastiveloss": (SentenceLoader, SentenceLoader),
+    "ge2eloss": (GE2ESentenceLoader, SentenceLoader),
 }
 
 
